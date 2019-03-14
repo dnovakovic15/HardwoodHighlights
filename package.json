@@ -1,0 +1,32 @@
+{
+  "name": "hardwood-highlights",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node node_modules/react-native/local-cli/cli.js start"
+  },
+  "dependencies": {
+    "react": "16.6.3",
+    "react-native": "0.58.6",
+    "react-native-vector-icons": "^6.3.0",
+    "react-native-video": "^4.4.0",
+    "react-native-youtube": "^1.1.0",
+    "react-navigation": "^3.3.2"
+  },
+  "devDependencies": {
+    "babel-core": "^7.0.0-bridge.0",
+    "metro-react-native-babel-preset": "0.53.0",
+    "prettier": "1.16.4",
+    "react-test-renderer": "16.6.3"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged"
+    }
+  },
+  "rnpm": {
+    "assets": [
+      "./app/assets/fonts/"
+    ]
+  }
+}
