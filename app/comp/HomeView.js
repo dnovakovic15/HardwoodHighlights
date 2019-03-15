@@ -1,12 +1,17 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import Images from '../assets/images/index';
 import config from '../config';
+import { SafeAreaView } from 'react-navigation';
+import { SearchBar } from 'react-native-elements';
+import _ from 'lodash';
+// import fetch from 'fetch';
 
 import YouTube from 'react-native-youtube';
 
-class ScheduleView extends React.Component {
+class HomeView extends React.Component {
     constructor(props) {
         super(props);
 
@@ -14,35 +19,53 @@ class ScheduleView extends React.Component {
             videos: [],
             videoActive: false,
             activeVideoId: '',
+            searchTerm: '',
         };
     }
 
-    componentDidMount = async () => {
-        const data = [
-            {
-                key: 1,
-                title: 'Otto Porter vs. Pistons',
-                statline: '37 Pts, 10 Reb, 4 Asts',
-                playerName: 'otto_porter',
-                active: 0,
-                youtubeID: "86M0V0r0bZg"
+    static navigationOptions = ({ navigation }) => {
+        SafeAreaView.setStatusBarHeight(0);
+        return {
+            visible: false,
+            headerStyle: {
+                backgroundColor: 'white',
+                borderBottomWidth: 0,
+                borderColor: '#333332',
+                color: 'white',
             },
-            {
-                key: 2,
-                title: 'Trae Young vs. Bulls',
-                statline: '27 Pts, 10 Reb, 14 Asts',
-                playerName: 'trae_young',
-                active: 0,
-                youtubeID: "ZETiJaljoOg"
-            },
-        ];
-
-        this.setState({
-            videos: data,
-        });
+            headerTitle: 
+                <SearchBar
+                    placeholder="Search for Player..."
+                    onChangeText={(searchTerm) => navigation.state.params.updateSearch(searchTerm)}
+                    value={navigation.state.params ? navigation.state.params.searchTerm : ''}
+                    containerStyle={{width: '100%', borderBottomWidth: 0, borderWidth: 0}}
+                />
+        };
     };
 
-    componentWillUnmount() {}
+    componentDidMount = async () => {
+        const results = await fetch('http://ec2-18-219-146-60.us-east-2.compute.amazonaws.com/videos/all', {
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then((response) => {
+            return response.json();
+        });
+
+        console.log(results);
+
+        this.setState({
+            videos: results.records,
+        });
+        this.props.navigation.setParams({searchTerm: this.state.searchTerm, updateSearch: this.updateSearch});
+    };
+
+    updateSearch = (searchTerm) => {
+        this.setState({searchTerm});
+        this.props.navigation.setParams({searchTerm});
+    }
 
     initializeMedications = async () => {};
 
@@ -59,7 +82,7 @@ class ScheduleView extends React.Component {
             elevation: 3,
             margin: 10,
             marginBottom: 5,
-            borderRadius: 7,
+            borderRadius: 15,
             backgroundColor: 'white'
         }}>
             <View style={{ height: 60, flexDirection: 'row' }}>
@@ -95,6 +118,13 @@ class ScheduleView extends React.Component {
                         {item.statline}
                     </Text>
                 </View>
+
+                <Ionicons
+                    name="ios-more"
+                    size={30}
+                    color="black"
+                    style={{ lineHeight: 60, marginRight: 15 }}
+                />
             </View>
             {this.state.videoActive && this.state.activeVideoId == item.youtubeID && 
                 <YouTube
@@ -108,7 +138,7 @@ class ScheduleView extends React.Component {
                     onChangeQuality={e => this.setState({ quality: e.quality })}
                     onError={e => this.setState({ error: e.error })}
                     
-                    style={{ alignSelf: 'stretch', height: 300 }}
+                    style={{ alignSelf: 'stretch', height: 50 }}
                 />
             }
             {(!this.state.videoActive || this.state.activeVideoId != item.youtubeID) &&
@@ -116,7 +146,29 @@ class ScheduleView extends React.Component {
                     <Ionicons  name='ios-play' color='white' size={50}/>
                 </TouchableOpacity>
             }
-            <View style={{ marginBottom: 8, marginTop: 8, paddingLeft: 15 }}>
+
+            <View
+                style={{
+                    height: 54,
+                    flexDirection: 'row',
+                }}
+            >
+                <Ionicons
+                    name="ios-heart-empty"
+                    size={34}
+                    color="#cc201a"
+                    style={{ marginTop: 12, marginLeft: 15 }}
+                />
+                <View style={{ flex: 1 }} />
+                <Icon
+                    name="bookmark"
+                    size={34}
+                    color="darkblue"
+                    style={{ marginTop: 12, marginRight: 15 }}
+                />
+            </View>
+
+            <View style={{ marginBottom: 8, paddingLeft: 15 }}>
                 <Text style={{ fontSize: 12, color: '#434345', fontWeight: 'bold' }}>
                     {'20 MINUTES AGO'}
                 </Text>
@@ -127,11 +179,18 @@ class ScheduleView extends React.Component {
     keyExtractor = item => item.key.toString();
 
     render() {
+        const filteredVideos = _.filter(this.state.videos, (video) => {
+            const title = video.title.toLowerCase();
+            const searchTerm = this.state.searchTerm.toLowerCase();
+
+            return title.indexOf(searchTerm) > -1;
+        });
+
         return (
             <View  style={{ flexDirection: 'column', flex: 1, backgroundColor: '#c4c4c4' }}>
                 <View style={{ flex: 1 }}>
                     <FlatList
-                        data={this.state.videos}
+                        data={filteredVideos}
                         extraData={this.state}
                         keyExtractor={this.keyExtractor}
                         renderItem={this.renderItem}
@@ -142,4 +201,5 @@ class ScheduleView extends React.Component {
     }
 }
 
-export default ScheduleView;
+
+export default HomeView;
