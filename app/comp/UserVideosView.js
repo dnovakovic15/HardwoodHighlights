@@ -4,7 +4,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import Images from '../assets/images/index';
 import config from '../config';
 import _ from 'lodash';
-// import fetch from 'fetch';
 
 import YouTube from 'react-native-youtube';
 import AsyncStorage from '../helpers/AsyncStorage';
@@ -25,10 +24,28 @@ class HomeView extends React.Component {
     }
 
     componentDidMount = async () => {
-        const focusListener = this.props.navigation.addListener('didFocus', async () => {
-            await this.updateVideoLikes();
+        const videos = await this.fetchVideos();
+        await this.updateVideoLikes(videos);
+
+        const focusListener = this.props.screenProps.navigation.addListener('didFocus', async () => {
+            const videos = await this.fetchVideos();
+            await this.updateVideoLikes(videos);
         });
 
+        this.setState({
+            focusListener,
+            searchTerm: this.props.searchTerm
+        });
+        this.props.screenProps.navigation.setParams({searchTerm: this.state.searchTerm, updateSearch: this.updateSearch});
+    };
+
+    componentWillUnmount = () => {
+        if (this.state.focusListener) {
+            this.state.focusListener.remove();
+        }
+    }
+
+    fetchVideos = async () => {
         const results = await fetch('http://ec2-18-219-146-60.us-east-2.compute.amazonaws.com/videos/all', {
             headers: {
                 Accept: 'application/json',
@@ -39,23 +56,12 @@ class HomeView extends React.Component {
             return response.json();
         });
 
-        this.setState({
-            videos: results.records,
-            focusListener
-        });
-        this.props.navigation.setParams({searchTerm: this.state.searchTerm, updateSearch: this.updateSearch});
-        await this.updateVideoLikes();
-    };
-
-    componentWillUnmount = () => {
-        if (this.state.focusListener) {
-            this.state.focusListener.remove();
-        }
+        return results.records;
     }
 
     updateSearch = (searchTerm) => {
         this.setState({searchTerm});
-        this.props.navigation.setParams({searchTerm});
+        this.props.screenProps.navigation.setParams({searchTerm});
     }
 
     initializeMedications = async () => {};
@@ -64,29 +70,39 @@ class HomeView extends React.Component {
         this.setState({activeVideoId: youtubeId, videoActive: true})
     }
 
-    updateVideoLikes = async () => {
-        const userVids = await AsyncStorage.fetchVideos();
-        let videos = this.state.videos;
+    updateVideoLikes = async (videos) => {
+        if (!videos) {
+            return;
+        }
 
-        for (let video of videos) {
-            const vidMatch = _.filter(userVids, (vid) => {
-                return vid.id == video.youtubeID; 
+        const userVids = await AsyncStorage.fetchVideos();
+        if (!userVids) {
+            return
+        }
+
+        let newVideos = [];
+
+        for (let video of userVids) {
+            const existingVid = _.filter(videos, (vid) => {
+                vid.liked = true;
+                return video.id == vid.youtubeID; 
             });
 
-            if (vidMatch.length > 0) {
-                video.liked = true;
-            }
-            else {
-                video.liked = false;
+            if (existingVid[0]) {
+                newVideos.push(existingVid[0]);
             }
         }
 
-        this.setState({videos});
+        this.setState({videos: newVideos});
     }
 
     updateUserSavedVids = async (id) => {
         let videos = await AsyncStorage.fetchVideos();
         let existingVid = false;
+
+        if (!videos) {
+            videos = [];
+        }
 
         for (let video of videos) {
             if (video.id == id) {
@@ -94,7 +110,7 @@ class HomeView extends React.Component {
             }
         }
 
-        if (existingVid) {
+        if (existingVid && videos) {
             videos = _.filter(videos, video => {
                 return video.id != id;
             })
@@ -104,7 +120,7 @@ class HomeView extends React.Component {
         }
 
         await AsyncStorage.updateVideos(videos);
-        this.updateVideoLikes();
+        this.updateVideoLikes(this.state.videos);
     }
 
     renderItem = ({ item }) => (
@@ -182,13 +198,17 @@ class HomeView extends React.Component {
     keyExtractor = item => item.key.toString();
 
     render() {
-        const filteredVideos = _.filter(this.state.videos, (video) => {
-            const title = video.title.toLowerCase();
-            const searchTerm = this.state.searchTerm.toLowerCase();
+        let filteredVideos = [];
 
-            return title.indexOf(searchTerm) > -1;
-        });
-
+        if (this.state.videos) {
+            filteredVideos = _.filter(this.state.videos, (video) => {
+                const title = video.title.toLowerCase();
+                const searchTerm = this.state.searchTerm.toLowerCase();
+    
+                return title.indexOf(searchTerm) > -1;
+            });
+    
+        }
         return (
             <View  style={{ flexDirection: 'column', flex: 1, backgroundColor: '#c4c4c4' }}>
                 <View style={{ flex: 1 }}>
