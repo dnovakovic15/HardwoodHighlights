@@ -1,19 +1,9 @@
 import React from 'react';
-import {
-	Alert,
-	AsyncStorage,
-	View,
-	Image,
-	ImageBackground,
-    TouchableOpacity,
-    Text,
-    Button,
-    TextInput,
-    StyleSheet,
-    Dimensions
-} from 'react-native';
+import {Alert, View, Image, TouchableOpacity, Text, TextInput, StyleSheet, Dimensions} from 'react-native';
 import _ from 'lodash';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+
+import AsyncStorage from '../helpers/AsyncStorage';
 
 export default class LoginForm extends React.Component {
 
@@ -21,72 +11,59 @@ export default class LoginForm extends React.Component {
 		super(props);
 
 		this.state = {
-			emailaddress: '',
-			password: '',
+			email: '',
+            password: '',
+            confirmPassword: '',
 			errors: {},
 		};
 	}
 
-	handleSubmit = () => {
+	handleSubmit = async () => {
 		let data = {
-			emailaddress: _.trim(this.state.emailaddress),
-			password: this.state.password,
+			email: _.trim(this.state.email),
+            password: this.state.password,
+            confirmPassword: this.state.confirmPassword
         };
         
-        this.props.navigation.navigate('Home');
+		if (!data.email) {
+			Alert.alert('Please enter your email address.');
+			return;
+		}
 
-		// if (!data.emailaddress) {
-		// 	Alert.alert('Please enter your email address.');
-		// 	return;
-		// }
+		if (!data.password) {
+			Alert.alert('Please enter your password.');
+			return;
+        }
+        
+        if (!data.confirmPassword) {
+			Alert.alert('Please confirm your password.');
+			return;
+        }
+        
+        if (data.confirmPassword != data.password) {
+			Alert.alert('The passwords entered do not match.');
+			return;
+		}
 
-		// if (!data.password) {
-		// 	Alert.alert('Please enter your password.');
-		// 	return;
-		// }
+		const results = await fetch('http://ec2-18-219-146-60.us-east-2.compute.amazonaws.com/register', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        .then((response) => {
+            return response.json();
+        });
 
-		// if (/^demo\+/.test(data.emailaddress)) {
-		// 	setDemoMode(true);
-		// }
+        if (results.status == 0) {
+            AsyncStorage.registerUser(data);
+            this.props.naviagtion.navigate('Home');
+            return;
+        }
 
-		// this.props.save({
-		// 	appLoading: true,
-		// });
-
-		// _.post('/signin', data, (res) => {
-
-		// 	if (res.status < 2) {
-		// 		AsyncStorage.setItem('lastLoginEmail', this.state.emailaddress);
-
-		// 		this.setState({
-		// 			emailaddress: '',
-		// 			password: '',
-		// 		}, () => {
-		// 			this.props.save({
-		// 				session_id: res.session_id,
-		// 				signedin: true,
-		// 				user: res.user,
-		// 				appLoading: false,
-		// 			}, () => {
-		// 				this.props.navigate('Dashboard', { user: res.user });
-		// 			});
-		// 		});
-		// 	}
-		// 	else {
-		// 		this.props.save({
-		// 			appLoading: false,
-		// 		});
-
-		// 		_.each(res.errors, function(error) {
-		// 			Alert.alert('Login Failed!');
-		// 			return false;
-		// 		});
-		// 	}
-		// }).catch(() => {
-		// 	this.props.save({
-		// 		appLoading: false,
-		// 	});
-		// });
+        alert('There was an error registering your account.');
 	}
 
 
@@ -104,7 +81,7 @@ export default class LoginForm extends React.Component {
                 <View style={styles.input}>
                     <Ionicons name='ios-person' size={30} style={{marginRight: 10}}/>
                     <TextInput
-                        value={this.state.emailaddress}
+                        value={this.state.email}
                         placeholderTextColor={'white'}
                         maxLength={200}
                         style={{width: '100%'}}
@@ -114,12 +91,10 @@ export default class LoginForm extends React.Component {
                         autoCorrect={false}
                         onSubmitEditing={this.handleNext.bind(null, 'password')}
                         returnKeyType="next"
-                        onChangeText={(text) => this.setState({emailaddress: text})}
+                        onChangeText={(text) => this.setState({email: text})}
                     />
                 </View>
-
                 <View style={{flex: 0.5}}/>
-
                 <View style={styles.input}>
                     <Ionicons name='ios-lock' size={30} style={{marginRight: 10}}/>
                     <TextInput
@@ -136,21 +111,34 @@ export default class LoginForm extends React.Component {
                         onChangeText={(text) => this.setState({password: text})}
                     />
                 </View>
+                <View style={{flex: 0.5}}/>
+                <View style={styles.input}>
+                    <Ionicons name='ios-lock' size={30} style={{marginRight: 10}}/>
+                    <TextInput
+                        value={this.state.confirmPassword}
+                        placeholderTextColor={'white'}
+                        maxLength={200}
+                        style={{width: '100%'}}
+                        placeholder={'Re-Type Password'}
+                        secureTextEntry={true}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        onSubmitEditing={this.handleNext.bind(null, 'password')}
+                        returnKeyType="next"
+                        onChangeText={(text) => this.setState({confirmPassword: text})}
+                    />
+                </View>
 
                 <View style={{flex: 1}}/>
                 <View style={{paddingHorizontal: 15, width: '100%'}}>
-                    <TouchableOpacity onPress={this.handleSubmit} style={styles.button}><Text style={{color: '#ffffff', fontWeight: '200', fontSize: 18, fontFamily: 'Graduate-Regular'}}>Login</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={this.handleSubmit} style={styles.button}>
+                        <Text style={{color: '#ffffff', fontWeight: '200', fontSize: 18, fontFamily: 'Graduate-Regular'}}>Register</Text>
+                    </TouchableOpacity>
                 </View>
 
-                <View style={{flexDirection: 'row', width: '100%', padding: 25}}>
-                    <TouchableOpacity onPress={() => this.props.navigation.navigate('ForgotPassword')} >
-                        <Text style={{color: 'white'}}>Forgot Password</Text>
-                    </TouchableOpacity>
-
-                    <View style={{flex: 1}} />
-
-                    <TouchableOpacity onPress={() => this.props.navigation.navigate('Register')}>
-                        <Text style={{color: 'white'}}>Create Account</Text>
+                <View style={{alignItems:'center', width: '100%', paddingHorizontal: 25, paddingTop: 10}}>
+                    <TouchableOpacity onPress={() => this.props.navigation.goBack()}>
+                        <Text style={{color: 'white'}}>Return to Login</Text>
                     </TouchableOpacity>
                 </View>
 

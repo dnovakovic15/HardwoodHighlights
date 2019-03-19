@@ -9,6 +9,10 @@ import _ from 'lodash';
 import HomeView from './HomeView';
 import UserVideosView from './UserVideosView';
 import Login from './LoginForm';
+import Register from './RegisterForm';
+import AuthLoadingScreen from './AuthLoadingScreen';
+import ForgotPassword from './ForgotPasswordForm';
+
 let globalSearchTerm = '';
 
 const navigationOptions = ({ navigation }) => {
@@ -155,8 +159,21 @@ const TabNavigator = createBottomTabNavigator(
 );
 
 const stackNaviagor = createStackNavigator({
+    AuthLoading: AuthLoadingScreen,
     Login: {
         screen: Login,
+        navigationOptions: ({navigation}) => ({
+            header: null
+        })
+    },
+    Register: {
+        screen: Register,
+        navigationOptions: ({navigation}) => ({
+            header: null
+        })
+    },
+    ForgotPassword: {
+        screen: ForgotPassword,
         navigationOptions: ({navigation}) => ({
             header: null
         })

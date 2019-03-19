@@ -30,7 +30,22 @@ const updateVideos = async(value) => {
     }
 }
 
+const registerUser = async(props) => {
+    const {email, password} = props;
+
+    console.log(email, password)
+
+    try {
+        await AsyncStorage.setItem('email', JSON.stringify(email));
+        return await AsyncStorage.setItem('password', JSON.stringify(password));
+    } 
+    catch (error) {
+        console.error('AsyncStorage#setItem error: ' + error.message);
+    }
+}
+
 module.exports ={
     fetchVideos,
     updateVideos,
+    registerUser
 }
