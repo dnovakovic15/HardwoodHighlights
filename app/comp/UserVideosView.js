@@ -1,11 +1,10 @@
 import React from 'react';
 import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import WebView from 'react-native-android-fullscreen-webview-video';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Images from '../assets/images/index';
-import config from '../config';
 import _ from 'lodash';
 
-import YouTube from 'react-native-youtube';
 import AsyncStorage from '../helpers/AsyncStorage';
 
 class HomeView extends React.Component {
@@ -19,7 +18,8 @@ class HomeView extends React.Component {
             activeVideoId: '',
             searchTerm: '',
             videoLiked: 'false',
-            focusListener: null
+            focusListener: null,
+            blurListener: null,
         };
     }
 
@@ -32,8 +32,13 @@ class HomeView extends React.Component {
             await this.updateVideoLikes(videos);
         });
 
+        const blurListener = this.props.screenProps.navigation.addListener('didBlur', async () => {
+            this.setState({activeVideoId: ''});
+        });
+
         this.setState({
             focusListener,
+            blurListener,
             searchTerm: this.props.searchTerm
         });
         this.props.screenProps.navigation.setParams({searchTerm: this.state.searchTerm, updateSearch: this.updateSearch});
@@ -42,6 +47,10 @@ class HomeView extends React.Component {
     componentWillUnmount = () => {
         if (this.state.focusListener) {
             this.state.focusListener.remove();
+        }
+
+        if (this.state.blurListener) {
+            this.state.blurListener.remove();
         }
     }
 
@@ -153,22 +162,14 @@ class HomeView extends React.Component {
                 <Ionicons name="ios-more" size={30} color="black" style={{ lineHeight: 60, marginRight: 15 }} />
             </View>
             {this.state.videoActive && this.state.activeVideoId == item.youtubeID && 
-                <YouTube
-                    apiKey={config.google_api_key}
-                    videoId={item.youtubeID}
-                    play={true}
-                    loop={false}           
-                    
-                    onReady={e => this.setState({ isReady: true })}
-                    onChangeState={e => this.setState({ status: e.state })}
-                    onChangeQuality={e => this.setState({ quality: e.quality })}
-                    onError={e => this.setState({ error: e.error })}
-                    
-                    style={{ alignSelf: 'stretch', height: 50 }}
+                <WebView
+                    style={{height: 300, alignSelf: 'stretch'}}
+                    source={{uri: `https://www.youtube.com/embed/${item.youtubeID}`}}
+                    javaScriptEnabled={true}
                 />
             }
             {(!this.state.videoActive || this.state.activeVideoId != item.youtubeID) &&
-                <TouchableOpacity style={{ alignSelf: 'stretch', height: 300, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }} onPress={() => this.playVideo(item.youtubeID)}>
+                <TouchableOpacity style={{ alignSelf: 'stretch', height: 200, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }} onPress={() => this.playVideo(item.youtubeID)}>
                     <Ionicons  name='ios-play' color='white' size={50}/>
                 </TouchableOpacity>
             }

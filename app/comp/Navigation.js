@@ -8,6 +8,7 @@ import _ from 'lodash';
 
 import HomeView from './HomeView';
 import UserVideosView from './UserVideosView';
+import Login from './LoginForm';
 let globalSearchTerm = '';
 
 const navigationOptions = ({ navigation }) => {
@@ -154,6 +155,12 @@ const TabNavigator = createBottomTabNavigator(
 );
 
 const stackNaviagor = createStackNavigator({
+    Login: {
+        screen: Login,
+        navigationOptions: ({navigation}) => ({
+            header: null
+        })
+    },
     TabNavigator: {
         screen: TabNavigator,
         navigationOptions,
